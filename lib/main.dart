@@ -1,9 +1,11 @@
+import 'dart:io';
+import 'dart:math';
 import 'package:expenses/components/chart.dart';
 import 'package:expenses/components/transaction_form.dart';
 import 'package:expenses/components/transaction_list.dart';
-import 'package:flutter/material.dart';
 import 'package:expenses/models/transaction.dart';
-import 'dart:math';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 //import 'package:flutter/services.dart';
 
 main() => runApp(ExpensesApp());
@@ -109,62 +111,90 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  Widget _getIconButton(IconData icon, Function fn) {
+    return
+        // Platform.isIOS ? GestureDetector(onTap: fn, child: Icon(icon)) :
+        IconButton(icon: Icon(icon), onPressed: fn,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final mediaQuery = MediaQuery.of(context);
+    bool isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final iconList =
+        //Platform.isIOS ? CupertinoIcons.refresh :
+        Icons.list;
+    final iconChart =
+        //Platform.isIOS ? CupertinoIcons.refresh :
+        Icons.show_chart;
 
-    final appBar = AppBar(
+    final PreferredSizeWidget appBar =
+        // Platform.isIOS ? CupertinoNavigationBar(middle: Text('Personal Expenses'), trailing: Row(mainAxisSize: MainAxisSize.min, children: actions)) :
+        AppBar(
       title: Text('Personal Expenses'),
       actions: <Widget>[
-        if(isLandscape)
-        IconButton(
-          icon: Icon(_showGraphics ? Icons.list : Icons.show_chart),
-          onPressed: () {
-            setState(() {
-              _showGraphics = !_showGraphics;
-            });
-          },
-        ),
-        IconButton(
-          icon: Icon(Icons.add),
-          onPressed: () => _openTransactionFormModal(context),
+        if (isLandscape)
+          _getIconButton(
+            _showGraphics ? iconList : iconChart,
+            () {
+              setState(() {
+                _showGraphics = !_showGraphics;
+              });
+            },
+          ),
+        _getIconButton(
+          //Platform.isIOS ? CupertinoIcons.add :
+          Icons.add,
+          () => _openTransactionFormModal(context),
         )
       ],
     );
 
-    final availableHeight = MediaQuery.of(context).size.height -
+    final availableHeight = mediaQuery.size.height -
         appBar.preferredSize.height -
-        MediaQuery.of(context).padding.top;
+        mediaQuery.padding.top;
 
-    return Scaffold(
+    final actions = <Widget>[
+      if (isLandscape)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Show graphics'),
+            Switch.adaptive(
+                activeColor: Theme.of(context).accentColor,
+                value: _showGraphics,
+                onChanged: (value) {
+                  setState(() {
+                    _showGraphics = value;
+                  });
+                }),
+          ],
+        ),
+      if (_showGraphics || !isLandscape)
+        Container(
+            height: availableHeight * (isLandscape ? 0.8 : (0.30)),
+            child: (Chart(_recentTransactions))),
+      if (!_showGraphics || !isLandscape)
+        Container(
+            height: availableHeight * (isLandscape ? 1 : (0.7)),
+            child: TransactionList(_transactions, _removeTransaction)),
+    ];
+
+    final bodyPage = SafeArea(
+        child: SingleChildScrollView(
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, children: actions),
+    ));
+
+    return
+        //Platform.isIOS ? CupertinoPageScaffold(navigationBar: appBar, child: bodyPage) :
+        Scaffold(
       appBar: appBar,
-      body: SingleChildScrollView(
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if(isLandscape)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Show graphics'),
-                  Switch(value: _showGraphics, onChanged: (value) {
-                    setState(() {
-                      _showGraphics = value;
-                    });
-                  }),
-                ],
-              ),
-              if (_showGraphics || !isLandscape)
-              Container(
-                  height: availableHeight * (isLandscape ? 0.8 : (0.30)),
-                  child: (Chart(_recentTransactions))),
-              if (!_showGraphics || !isLandscape)
-              Container(
-                  height: availableHeight * (isLandscape ? 1 : (0.7)),
-                  child: TransactionList(_transactions, _removeTransaction)),
-            ]),
-      ),
-      floatingActionButton: FloatingActionButton(
+      body: bodyPage,
+      floatingActionButton:
+          // Platform.isIOS ? Container() :
+          FloatingActionButton(
         child: Icon(Icons.add),
         onPressed: () => _openTransactionFormModal(context),
       ),
